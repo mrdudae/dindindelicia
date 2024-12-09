@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Loja de Dindin</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="login-container" id="login-screen">
+        <h1>Login</h1>
+        <form id="login-form">
+            <label for="username">Usuário:</label>
+            <input type="text" id="username" required>
+            <button type="submit">Entrar</button>
+        </form>
+    </div>
+
+    <div class="app-container" id="app-screen" style="display: none;">
+        <header>
+            <h1>Controle de Estoque</h1>
+            <button id="logout-button">Sair</button>
+        </header>
+
+        <div class="form-section">
+            <h2>Adicionar Item</h2>
+            <form id="add-item-form">
+                <input type="text" id="new-item-name" placeholder="Nome do Dindin" required>
+                <button type="submit">Adicionar</button>
+            </form>
+        </div>
+
+        <div class="stock-list">
+            <h2>Estoque Atual</h2>
+            <ul id="stock-list">
+                <!-- Os itens serão inseridos aqui dinamicamente -->
+            </ul>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
