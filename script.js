@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => { 
     const stockList = document.getElementById("stock");
     const flavorSelect = document.getElementById("flavor");
     const cashboxDisplay = document.getElementById("cashbox");
@@ -8,11 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Dados iniciais ou carregados do Local Storage
     const data = JSON.parse(localStorage.getItem("storeData")) || {
-        flavors: [
-            { name: "Coco", price: 2.0, stock: 20 },
-            { name: "Morango", price: 2.5, stock: 15 },
-            { name: "Chocolate", price: 3.0, stock: 10 },
-        ],
+        flavors: [], // Começa vazio
         cashbox: 0,
     };
 
@@ -23,10 +19,16 @@ document.addEventListener("DOMContentLoaded", () => {
     const updateStockUI = () => {
         stockList.innerHTML = "";
         flavorSelect.innerHTML = "";
-        data.flavors.forEach((flavor, index) => {
-            stockList.innerHTML += `<li>${flavor.name}: <span>${flavor.stock}</span></li>`;
-            flavorSelect.innerHTML += `<option value="${index}">${flavor.name} - R$${flavor.price.toFixed(2)}</option>`;
-        });
+
+        if (data.flavors.length === 0) {
+            stockList.innerHTML = "<li>Nenhum sabor cadastrado</li>";
+            flavorSelect.innerHTML = "<option disabled selected>Sem sabores disponíveis</option>";
+        } else {
+            data.flavors.forEach((flavor, index) => {
+                stockList.innerHTML += `<li>${flavor.name}: <span>${flavor.stock}</span></li>`;
+                flavorSelect.innerHTML += `<option value="${index}">${flavor.name} - R$${flavor.price.toFixed(2)}</option>`;
+            });
+        }
     };
 
     // Atualiza o caixa na interface
