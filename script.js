@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => { 
+document.addEventListener("DOMContentLoaded", () => {  
     const stockList = document.getElementById("stock");
     const flavorsList = document.getElementById("flavors-list");
     const totalStockEl = document.getElementById("total-stock");
