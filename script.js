@@ -1,4 +1,4 @@
-document.addEventListener("DOMContentLoaded", () => {
+document.addEventListener("DOMContentLoaded", () => { 
     // Referências aos elementos do DOM
     const stockList = document.getElementById("stock");
     const flavorsList = document.getElementById("flavors-list");
@@ -7,145 +7,224 @@ document.addEventListener("DOMContentLoaded", () => {
     const totalValueEl = document.getElementById("total-value");
     const cashboxEl = document.getElementById("cashbox");
     const salesTodayEl = document.getElementById("sales-today");
+    const salesWeeklyEl = document.getElementById("sales-week");
+    const salesMonthlyEl = document.getElementById("sales-month");
 
-    // Inicialização dos dados do estoque, caixa e vendas do dia
+    // Inicialização dos dados
     let stock = JSON.parse(localStorage.getItem("stock")) || [
         { flavor: "Morango", price: 2.5, quantity: 20 },
         { flavor: "Chocolate", price: 3.0, quantity: 15 },
     ];
     let cashbox = parseFloat(localStorage.getItem("cashbox")) || 0;
     let salesToday = parseFloat(localStorage.getItem("salesToday")) || 0;
+    let salesWeekly = parseFloat(localStorage.getItem("salesWeekly")) || 0;
+    let salesMonthly = parseFloat(localStorage.getItem("salesMonthly")) || 0;
+    let saleItems = []; // Lista de itens vendidos
 
-    // Atualiza a exibição do estoque na interface
+    // Atualiza o relatório de vendas
+    function updateSalesReport(amount) {
+        salesToday += amount;
+        salesWeekly += amount;
+        salesMonthly += amount;
+
+        salesTodayEl.textContent = salesToday.toFixed(2);
+        salesWeeklyEl.textContent = salesWeekly.toFixed(2);
+        salesMonthlyEl.textContent = salesMonthly.toFixed(2);
+
+        localStorage.setItem("salesToday", salesToday);
+        localStorage.setItem("salesWeekly", salesWeekly);
+        localStorage.setItem("salesMonthly", salesMonthly);
+    }
+
+    // Atualiza a exibição do estoque
     function updateStockDisplay() {
         stockList.innerHTML = ""; // Limpa a lista de exibição do estoque
         let totalQuantity = 0;
         let totalValue = 0;
 
         stock.forEach(({ flavor, price, quantity }) => {
-            // Cria e adiciona um item à lista de estoque
             const li = document.createElement("li");
             li.textContent = `${flavor} - R$ ${price.toFixed(2)} - ${quantity} unidades`;
+
+            // Adiciona botão de exclusão
+            const deleteButton = document.createElement("button");
+            deleteButton.textContent = "Excluir";
+            deleteButton.classList.add("delete-btn");
+            deleteButton.addEventListener("click", () => deleteStockItem(flavor));
+
+            li.appendChild(deleteButton); // Adiciona o botão ao item
+            li.addEventListener("click", () => openEditStockModal(flavor)); // Abre o modal de edição
             stockList.appendChild(li);
 
-            totalQuantity += quantity; // Soma as quantidades
-            totalValue += price * quantity; // Soma os valores
+            totalQuantity += quantity;
+            totalValue += price * quantity;
         });
 
-        totalStockEl.textContent = totalQuantity; // Atualiza a quantidade total
-        totalStockValueEl.textContent = totalValue.toFixed(2); // Atualiza o valor total
-
-        // Salva o estoque atualizado no localStorage
-        localStorage.setItem("stock", JSON.stringify(stock));
+        totalStockEl.textContent = totalQuantity;
+        totalStockValueEl.textContent = totalValue.toFixed(2);
+        localStorage.setItem("stock", JSON.stringify(stock)); // Salva o estoque no localStorage
     }
 
-    // Atualiza o valor do caixa
+    // Função para excluir um item
+    function deleteStockItem(flavor) {
+        const index = stock.findIndex(item => item.flavor === flavor);
+        if (index !== -1) {
+            stock.splice(index, 1); // Remove o item do estoque
+            updateStockDisplay(); // Atualiza a lista de estoque
+        }
+    }
+
+    // Atualiza o caixa
     function updateCashbox(amount) {
-        cashbox += amount; // Adiciona o valor ao caixa
-        cashboxEl.textContent = cashbox.toFixed(2); // Exibe o valor atualizado no caixa
-        totalValueEl.textContent = cashbox.toFixed(2); // Atualiza o total exibido
-
-        // Salva o caixa atualizado no localStorage
-        localStorage.setItem("cashbox", cashbox);
+        cashbox += amount;
+        cashboxEl.textContent = cashbox.toFixed(2);
+        totalValueEl.textContent = cashbox.toFixed(2);
+        localStorage.setItem("cashbox", cashbox); // Salva o caixa no localStorage
     }
 
-    // Atualiza o total de vendas do dia
-    function updateSalesToday(amount) {
-        salesToday += amount; // Soma o valor à venda do dia
-        salesTodayEl.textContent = salesToday.toFixed(2); // Exibe o total atualizado
+    // Adiciona um item à venda
+    function addSaleItem(flavor, price, quantity) {
+        const item = stock.find(item => item.flavor === flavor);
+        if (item && item.quantity >= quantity) {
+            item.quantity -= quantity; // Atualiza o estoque
+            updateStockDisplay();
 
-        // Salva as vendas do dia no localStorage
-        localStorage.setItem("salesToday", salesToday);
+            saleItems.push({ flavor, price, quantity });
+            return price * quantity; // Retorna o valor do item vendido
+        }
+        return 0;
     }
 
-    // Adiciona campos dinâmicos para seleção de sabores e quantidade
-    function addFlavorFields() {
-        const div = document.createElement("div"); // Cria um novo contêiner para os campos
-        div.classList.add("flavor-field");
-        div.innerHTML = `
-            <label>Sabor:</label>
-            <select required>
-                ${stock.map(({ flavor }) => `<option value="${flavor}">${flavor}</option>`).join("")}
-            </select>
-            <label>Quantidade:</label>
-            <input type="number" min="1" required>
-        `;
-        flavorsList.appendChild(div); // Adiciona os campos ao formulário
-    }
-
-    // Evento para adicionar mais campos de sabores
-    document.getElementById("add-more-flavor").addEventListener("click", addFlavorFields);
-
-    // Lógica para processar a venda
+    // Calcula o valor total do pedido (incluindo entrega)
     document.getElementById("sale-form").addEventListener("submit", (e) => {
-        e.preventDefault(); // Previne o comportamento padrão do formulário
+        e.preventDefault();
+        let totalSaleValue = 0;
+        
+        // Soma o valor dos itens vendidos
+        saleItems.forEach(item => {
+            totalSaleValue += item.price * item.quantity;
+        });
 
-        // Recupera os campos dos sabores e a taxa de entrega
-        const flavorFields = flavorsList.querySelectorAll(".flavor-field");
+        // Pega o valor da entrega e soma ao valor total do pedido
         const deliveryFee = parseFloat(document.getElementById("delivery-fee").value) || 0;
+        const totalAmount = totalSaleValue + deliveryFee;
 
-        let saleTotal = 0; // Inicializa o total da venda
+        // Atualiza o caixa com o total da venda
+        updateCashbox(totalAmount);
 
-        // Calcula o total dos sabores selecionados
-        flavorFields.forEach((field) => {
-            const flavor = field.querySelector("select").value;
-            const quantity = parseInt(field.querySelector("input").value);
-            const item = stock.find((item) => item.flavor === flavor);
+        // Atualiza o relatório de vendas
+        updateSalesReport(totalAmount);
 
-            if (item && item.quantity >= quantity) {
-                item.quantity -= quantity; // Reduz a quantidade no estoque
-                saleTotal += item.price * quantity; // Soma o valor ao total da venda
+        // Exibe a confirmação
+        alert(`Pedido Confirmado! Total: R$ ${totalAmount.toFixed(2)}`);
+        
+        // Limpa os itens da venda
+        saleItems = [];
+    });
+
+    // Ação de adicionar um sabor
+    document.getElementById("add-flavor").addEventListener("click", () => {
+        const modal = document.getElementById("modal");
+        const newFlavorInput = document.getElementById("new-flavor");
+        const priceInput = document.getElementById("price");
+        const stockQuantityInput = document.getElementById("stock-quantity");
+
+        modal.style.display = "flex";
+
+        modal.querySelector(".close").addEventListener("click", () => {
+            modal.style.display = "none";
+        });
+
+        document.getElementById("flavor-form").addEventListener("submit", (e) => {
+            e.preventDefault();
+            const newFlavor = newFlavorInput.value;
+            const price = parseFloat(priceInput.value);
+            const quantity = parseInt(stockQuantityInput.value);
+
+            stock.push({ flavor: newFlavor, price, quantity });
+            updateStockDisplay();
+            modal.style.display = "none";
+        });
+    });
+
+    // Função para adicionar sabores à venda
+    document.getElementById("add-more-flavor").addEventListener("click", () => {
+        const flavorSelect = document.createElement("select");
+        flavorSelect.classList.add("flavor-select");
+
+        stock.forEach(({ flavor }) => {
+            const option = document.createElement("option");
+            option.value = flavor;
+            option.textContent = flavor;
+            flavorSelect.appendChild(option);
+        });
+
+        const quantityInput = document.createElement("input");
+        quantityInput.type = "number";
+        quantityInput.min = 1;
+        quantityInput.placeholder = "Quantidade";
+
+        const addButton = document.createElement("button");
+        addButton.textContent = "Adicionar";
+        addButton.type = "button";
+
+        addButton.addEventListener("click", () => {
+            const flavor = flavorSelect.value;
+            const quantity = parseInt(quantityInput.value);
+
+            if (quantity > 0) {
+                const price = stock.find(item => item.flavor === flavor).price;
+                const saleValue = addSaleItem(flavor, price, quantity);
+
+                if (saleValue > 0) {
+                    alert(`Item Adicionado: ${flavor} - Quantidade: ${quantity} - Total: R$ ${saleValue.toFixed(2)}`);
+                } else {
+                    alert("Quantidade indisponível no estoque!");
+                }
             }
         });
 
-        // Adiciona a taxa de entrega ao total da venda
-        saleTotal += deliveryFee;
+        const flavorItem = document.createElement("div");
+        flavorItem.classList.add("flavor-item");
+        flavorItem.appendChild(flavorSelect);
+        flavorItem.appendChild(quantityInput);
+        flavorItem.appendChild(addButton);
 
-        if (saleTotal > 0) {
-            updateStockDisplay(); // Atualiza a exibição do estoque
-            updateCashbox(saleTotal); // Atualiza o caixa
-            updateSalesToday(saleTotal); // Atualiza as vendas do dia
-            alert(`Venda concluída! Total (com taxa): R$ ${saleTotal.toFixed(2)}`);
-        } else {
-            alert("Por favor, preencha os campos corretamente e tente novamente.");
+        flavorsList.appendChild(flavorItem);
+    });
+
+    // Função para abrir o modal de edição do estoque
+    function openEditStockModal(flavor) {
+        const item = stock.find(item => item.flavor === flavor);
+        if (item) {
+            const editModal = document.getElementById("edit-modal");
+            const flavorInput = document.getElementById("edit-flavor");
+            const priceInput = document.getElementById("edit-price");
+            const quantityInput = document.getElementById("edit-quantity");
+
+            flavorInput.value = item.flavor;
+            priceInput.value = item.price;
+            quantityInput.value = item.quantity;
+
+            editModal.style.display = "flex";
+
+            // Ação para salvar as alterações
+            document.getElementById("edit-flavor-form").addEventListener("submit", (e) => {
+                e.preventDefault();
+                item.flavor = flavorInput.value;
+                item.price = parseFloat(priceInput.value);
+                item.quantity = parseInt(quantityInput.value);
+                updateStockDisplay();
+                editModal.style.display = "none";
+            });
+
+            // Fechar o modal
+            editModal.querySelector(".close").addEventListener("click", () => {
+                editModal.style.display = "none";
+            });
         }
-    });
+    }
 
-    // Lógica para atualizar o caixa com entradas e saídas
-    document.getElementById("update-cashbox").addEventListener("click", () => {
-        const entry = parseFloat(document.getElementById("cash-entry").value) || 0;
-        const exit = parseFloat(document.getElementById("cash-exit").value) || 0;
-        updateCashbox(entry - exit); // Atualiza o caixa com a diferença
-    });
-
-    // Lógica para abrir e fechar o modal de adição de sabores
-    const modal = document.getElementById("modal");
-    const closeModal = document.querySelector(".close");
-
-    document.getElementById("add-flavor").addEventListener("click", () => {
-        modal.style.display = "flex"; // Exibe o modal
-    });
-
-    closeModal.addEventListener("click", () => {
-        modal.style.display = "none"; // Esconde o modal
-    });
-
-    // Lógica para adicionar um novo sabor ao estoque
-    document.getElementById("flavor-form").addEventListener("submit", (e) => {
-        e.preventDefault(); // Previne o comportamento padrão do formulário
-
-        const flavor = document.getElementById("new-flavor").value;
-        const price = parseFloat(document.getElementById("price").value);
-        const quantity = parseInt(document.getElementById("stock-quantity").value);
-
-        stock.push({ flavor, price, quantity }); // Adiciona o novo sabor ao estoque
-        updateStockDisplay(); // Atualiza a exibição do estoque
-        modal.style.display = "none"; // Fecha o modal
-    });
-
-    // Inicializa as exibições com os dados salvos
+    // Atualiza a exibição do estoque na carga inicial
     updateStockDisplay();
-    cashboxEl.textContent = cashbox.toFixed(2);
-    totalValueEl.textContent = cashbox.toFixed(2);
-    salesTodayEl.textContent = salesToday.toFixed(2);
 });

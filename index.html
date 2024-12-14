@@ -25,7 +25,7 @@
             <ul id="stock">
                 <!-- Estoque dinâmico -->
             </ul>
-            <button id="add-flavor">Adicionar/Editar Sabores</button>
+            <button id="add-flavor">Adicionar Novo Sabor</button>
             <p>Quantidade Total: <span id="total-stock">0</span> | Valor Total: R$ <span id="total-stock-value">0.00</span></p>
         </section>
 
@@ -44,7 +44,7 @@
 
         <section class="cashbox">
             <h2>Caixa</h2>
-            <p>Total em caixa: R$ <span id="cashbox">0.00</span></p>
+            <p>Caixa: R$ <span id="cashbox">0.00</span></p>
             <form id="cashbox-form">
                 <label for="cash-entry">Entrada:</label>
                 <input type="number" id="cash-entry" step="0.01" min="0" placeholder="0.00">
@@ -70,7 +70,7 @@
     <div id="modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
-            <h2>Adicionar/Editar Sabores</h2>
+            <h2>Adicionar Novo Sabor</h2>
             <form id="flavor-form">
                 <label for="new-flavor">Sabor:</label>
                 <input type="text" id="new-flavor" required>
@@ -85,6 +85,21 @@
             </form>
         </div>
     </div>
+
+    <div id="edit-stock-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Editar Estoque</h2>
+            <label for="edit-flavor">Sabor:</label>
+            <input type="text" id="edit-flavor" disabled>
+            <label for="edit-price">Preço:</label>
+            <input type="number" id="edit-price" step="0.01">
+            <label for="edit-quantity">Quantidade:</label>
+            <input type="number" id="edit-quantity" min="0">
+            <button id="save-stock">Salvar</button>
+        </div>
+    </div>
+    
 
     <script src="script.js"></script>
 </body>
