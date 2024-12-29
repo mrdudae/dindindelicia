@@ -1,233 +1,266 @@
-document.addEventListener("DOMContentLoaded", () => {  
-    // Referências aos elementos do DOM
+// Inicialização do armazenamento local
+const storageKey = {
+    stock: "stock-data",
+    cashbox: "cashbox-value",
+    sales: "sales-data",
+};
+
+// Recupera os dados do armazenamento local ou inicializa-os
+const getLocalData = (key, defaultValue) => {
+    const data = localStorage.getItem(key);
+    return data ? JSON.parse(data) : defaultValue;
+};
+
+const setLocalData = (key, value) => {
+    localStorage.setItem(key, JSON.stringify(value));
+};
+
+// Dados iniciais
+let stock = getLocalData(storageKey.stock, []);
+let cashbox = getLocalData(storageKey.cashbox, 0);
+let salesData = getLocalData(storageKey.sales, { today: 0, week: 0, month: 0 });
+
+// Atualizações de UI
+const updateStockUI = () => {
     const stockList = document.getElementById("stock");
+    const totalStock = document.getElementById("total-stock");
+    const totalStockValue = document.getElementById("total-stock-value");
+
+    stockList.innerHTML = "";
+    let totalQuantity = 0;
+    let totalValue = 0;
+
+    stock.forEach((item, index) => {
+        totalQuantity += item.quantity;
+        totalValue += item.quantity * item.price;
+
+        const li = document.createElement("li");
+        li.innerHTML = `${item.flavor} - R$ ${item.price.toFixed(2)} (${item.quantity})`;
+        
+        const editBtn = document.createElement("button");
+        editBtn.textContent = "Editar";
+        editBtn.onclick = () => openEditStockModal(index);
+        
+        const deleteBtn = document.createElement("button");
+        deleteBtn.textContent = "Excluir";
+        deleteBtn.onclick = () => {
+            stock.splice(index, 1);
+            setLocalData(storageKey.stock, stock);
+            updateStockUI();
+        };
+
+        li.appendChild(editBtn);
+        li.appendChild(deleteBtn);
+        stockList.appendChild(li);
+    });
+
+    totalStock.textContent = totalQuantity;
+    totalStockValue.textContent = totalValue.toFixed(2);
+};
+
+const updateCashboxUI = () => {
+    document.getElementById("cashbox").textContent = cashbox.toFixed(2);
+};
+
+const updateSalesReportUI = () => {
+    document.getElementById("sales-today").textContent = salesData.today.toFixed(2);
+    document.getElementById("sales-week").textContent = salesData.week.toFixed(2);
+    document.getElementById("sales-month").textContent = salesData.month.toFixed(2);
+};
+
+// Adiciona novo sabor ao estoque
+const openFlavorModal = () => {
+    document.getElementById("modal").style.display = "block";
+};
+
+document.getElementById("add-flavor").onclick = openFlavorModal;
+
+document.getElementById("flavor-form").onsubmit = (e) => {
+    e.preventDefault();
+    const flavor = document.getElementById("new-flavor").value;
+    const price = parseFloat(document.getElementById("price").value);
+    const quantity = parseInt(document.getElementById("stock-quantity").value);
+
+    stock.push({ flavor, price, quantity });
+    setLocalData(storageKey.stock, stock);
+
+    updateStockUI();
+    document.getElementById("modal").style.display = "none";
+};
+
+// Edita um item do estoque
+const openEditStockModal = (index) => {
+    const item = stock[index];
+
+    document.getElementById("edit-flavor").value = item.flavor;
+    document.getElementById("edit-price").value = item.price;
+    document.getElementById("edit-quantity").value = item.quantity;
+
+    document.getElementById("edit-stock-modal").style.display = "block";
+
+    document.getElementById("save-stock").onclick = () => {
+        item.price = parseFloat(document.getElementById("edit-price").value);
+        item.quantity = parseInt(document.getElementById("edit-quantity").value);
+
+        setLocalData(storageKey.stock, stock);
+        updateStockUI();
+        document.getElementById("edit-stock-modal").style.display = "none";
+    };
+};
+
+// Adiciona mais um campo de sabor na venda
+const addFlavorField = () => {
     const flavorsList = document.getElementById("flavors-list");
-    const totalStockEl = document.getElementById("total-stock");
-    const totalStockValueEl = document.getElementById("total-stock-value");
-    const totalValueEl = document.getElementById("total-value");
-    const cashboxEl = document.getElementById("cashbox");
-    const salesTodayEl = document.getElementById("sales-today");
-    const salesWeeklyEl = document.getElementById("sales-week");
-    const salesMonthlyEl = document.getElementById("sales-month");
 
-    // Inicialização dos dados
-    let stock = JSON.parse(localStorage.getItem("stock")) || [
-        { flavor: "Morango", price: 2.5, quantity: 20 },
-        { flavor: "Chocolate", price: 3.0, quantity: 15 },
-    ];
-    let cashbox = parseFloat(localStorage.getItem("cashbox")) || 0;
-    let salesToday = parseFloat(localStorage.getItem("salesToday")) || 0;
-    let salesWeekly = parseFloat(localStorage.getItem("salesWeekly")) || 0;
-    let salesMonthly = parseFloat(localStorage.getItem("salesMonthly")) || 0;
-    let saleItems = []; // Lista de itens vendidos
+    const flavorItem = document.createElement("div");
+    flavorItem.classList.add("flavor-item");
 
-    // Atualiza o relatório de vendas
-    function updateSalesReport(amount) {
-        salesToday += amount;
-        salesWeekly += amount;
-        salesMonthly += amount;
+    const flavorSelect = document.createElement("select");
+    flavorSelect.classList.add("flavor-name");
 
-        salesTodayEl.textContent = salesToday.toFixed(2);
-        salesWeeklyEl.textContent = salesWeekly.toFixed(2);
-        salesMonthlyEl.textContent = salesMonthly.toFixed(2);
-
-        localStorage.setItem("salesToday", salesToday);
-        localStorage.setItem("salesWeekly", salesWeekly);
-        localStorage.setItem("salesMonthly", salesMonthly);
-    }
-
-    // Atualiza a exibição do estoque
-    function updateStockDisplay() {
-        stockList.innerHTML = ""; // Limpa a lista de exibição do estoque
-        let totalQuantity = 0;
-        let totalValue = 0;
-
-        stock.forEach(({ flavor, price, quantity }) => {
-            const li = document.createElement("li");
-            li.textContent = `${flavor} - R$ ${price.toFixed(2)} - ${quantity} unidades`;
-
-            // Adiciona botão de exclusão
-            const deleteButton = document.createElement("button");
-            deleteButton.textContent = "Excluir";
-            deleteButton.classList.add("delete-btn");
-            deleteButton.addEventListener("click", (e) => {
-                e.stopPropagation();
-                deleteStockItem(flavor);
-            });
-
-            li.appendChild(deleteButton); // Adiciona o botão ao item
-            li.addEventListener("click", () => openEditStockModal(flavor)); // Abre o modal de edição
-            stockList.appendChild(li);
-
-            totalQuantity += quantity;
-            totalValue += price * quantity;
-        });
-
-        totalStockEl.textContent = totalQuantity;
-        totalStockValueEl.textContent = totalValue.toFixed(2);
-        localStorage.setItem("stock", JSON.stringify(stock)); // Salva o estoque no localStorage
-    }
-
-    // Função para excluir um item
-    function deleteStockItem(flavor) {
-        const index = stock.findIndex(item => item.flavor === flavor);
-        if (index !== -1) {
-            stock.splice(index, 1); // Remove o item do estoque
-            updateStockDisplay(); // Atualiza a lista de estoque
-        }
-    }
-
-    // Atualiza o caixa
-    function updateCashbox(amount) {
-        cashbox += amount;
-        cashboxEl.textContent = cashbox.toFixed(2);
-        totalValueEl.textContent = cashbox.toFixed(2);
-        localStorage.setItem("cashbox", cashbox); // Salva o caixa no localStorage
-    }
-
-    // Adiciona um item à venda
-    function addSaleItem(flavor, price, quantity) {
-        const item = stock.find(item => item.flavor === flavor);
-        if (item && item.quantity >= quantity) {
-            item.quantity -= quantity; // Atualiza o estoque
-            updateStockDisplay();
-
-            saleItems.push({ flavor, price, quantity });
-            return price * quantity; // Retorna o valor do item vendido
-        }
-        return 0;
-    }
-
-    // Calcula o valor total do pedido (incluindo entrega)
-    document.getElementById("sale-form").addEventListener("submit", (e) => {
-        e.preventDefault();
-        let totalSaleValue = 0;
-        
-        // Soma o valor dos itens vendidos
-        saleItems.forEach(item => {
-            totalSaleValue += item.price * item.quantity;
-        });
-
-        // Pega o valor da entrega e soma ao valor total do pedido
-        const deliveryFee = parseFloat(document.getElementById("delivery-fee").value) || 0;
-        const totalAmount = totalSaleValue + deliveryFee;
-
-        // Atualiza o caixa com o total da venda
-        updateCashbox(totalAmount);
-
-        // Atualiza o relatório de vendas
-        updateSalesReport(totalAmount);
-
-        // Exibe a confirmação
-        alert(`Pedido Confirmado! Total: R$ ${totalAmount.toFixed(2)}`);
-        
-        // Limpa os itens da venda
-        saleItems = [];
+    stock.forEach((item) => {
+        const option = document.createElement("option");
+        option.value = item.flavor;
+        option.textContent = item.flavor;
+        flavorSelect.appendChild(option);
     });
 
-    // Ação de adicionar um sabor
-    document.getElementById("add-flavor").addEventListener("click", () => {
-        const modal = document.getElementById("modal");
-        const newFlavorInput = document.getElementById("new-flavor");
-        const priceInput = document.getElementById("price");
-        const stockQuantityInput = document.getElementById("stock-quantity");
+    const quantityInput = document.createElement("input");
+    quantityInput.type = "number";
+    quantityInput.classList.add("flavor-quantity");
+    quantityInput.placeholder = "Quantidade";
+    quantityInput.min = "1";
 
-        modal.style.display = "flex";
+    const removeBtn = document.createElement("button");
+    removeBtn.textContent = "Remover";
+    removeBtn.onclick = () => {
+        flavorItem.remove();
+    };
 
-        modal.querySelector(".close").addEventListener("click", () => {
-            modal.style.display = "none";
-        });
+    flavorItem.appendChild(flavorSelect);
+    flavorItem.appendChild(quantityInput);
+    flavorItem.appendChild(removeBtn);
+    flavorsList.appendChild(flavorItem);
+};
 
-        document.getElementById("flavor-form").addEventListener("submit", (e) => {
-            e.preventDefault();
-            const newFlavor = newFlavorInput.value;
-            const price = parseFloat(priceInput.value);
-            const quantity = parseInt(stockQuantityInput.value);
+document.getElementById("add-more-flavor").onclick = addFlavorField;
 
-            stock.push({ flavor: newFlavor, price, quantity });
-            updateStockDisplay();
-            modal.style.display = "none";
-        });
-    });
+// Mostra tela de confirmação antes de finalizar a venda
+const showConfirmationModal = (total) => {
+    const modal = document.getElementById("confirmation-modal");
+    const totalDisplay = document.getElementById("confirmation-total");
+    totalDisplay.textContent = `R$ ${total.toFixed(2)}`;
+    modal.style.display = "block";
 
-    // Função para adicionar sabores à venda
-    document.getElementById("add-more-flavor").addEventListener("click", () => {
-        const flavorSelect = document.createElement("select");
-        flavorSelect.classList.add("flavor-select");
+    document.getElementById("confirm-sale").onclick = () => {
+        finalizeSale(total);
+        modal.style.display = "none";
+    };
 
-        stock.forEach(({ flavor }) => {
-            const option = document.createElement("option");
-            option.value = flavor;
-            option.textContent = flavor;
-            flavorSelect.appendChild(option);
-        });
+    document.getElementById("cancel-sale").onclick = () => {
+        modal.style.display = "none";
+    };
+};
 
-        const quantityInput = document.createElement("input");
-        quantityInput.type = "number";
-        quantityInput.min = 1;
-        quantityInput.placeholder = "Quantidade";
+// Finaliza a venda
+const finalizeSale = (total) => {
+    cashbox += total;
+    salesData.today += total;
 
-        const addButton = document.createElement("button");
-        addButton.textContent = "Adicionar";
-        addButton.type = "button";
+    setLocalData(storageKey.stock, stock);
+    setLocalData(storageKey.cashbox, cashbox);
+    setLocalData(storageKey.sales, salesData);
 
-        addButton.addEventListener("click", () => {
-            const flavor = flavorSelect.value;
-            const quantity = parseInt(quantityInput.value);
+    updateStockUI();
+    updateCashboxUI();
+    updateSalesReportUI();
 
-            if (quantity > 0) {
-                const price = stock.find(item => item.flavor === flavor).price;
-                const saleValue = addSaleItem(flavor, price, quantity);
+    document.getElementById("sale-form").reset();
+    document.getElementById("flavors-list").innerHTML = "";
+    addFlavorField();
+};
 
-                if (saleValue > 0) {
-                    alert(`Item Adicionado: ${flavor} - Quantidade: ${quantity} - Total: R$ ${saleValue.toFixed(2)}`);
-                } else {
-                    alert("Quantidade indisponível no estoque!");
-                }
-            }
-        });
+// Realiza uma venda
+const handleSale = (event) => {
+    event.preventDefault();
 
-        const flavorItem = document.createElement("div");
-        flavorItem.classList.add("flavor-item");
-        flavorItem.appendChild(flavorSelect);
-        flavorItem.appendChild(quantityInput);
-        flavorItem.appendChild(addButton);
+    const flavorsList = document.querySelectorAll("#flavors-list .flavor-item");
+    const deliveryFee = parseFloat(document.getElementById("delivery-fee").value) || 0;
+    let saleTotal = deliveryFee;
 
-        flavorsList.appendChild(flavorItem);
-    });
+    let validSale = true;
 
-    // Função para abrir o modal de edição do estoque
-    function openEditStockModal(flavor) {
-        const item = stock.find(item => item.flavor === flavor);
-        if (item) {
-            const editModal = document.getElementById("edit-modal");
-            const flavorInput = document.getElementById("edit-flavor");
-            const priceInput = document.getElementById("edit-price");
-            const quantityInput = document.getElementById("edit-quantity");
+    flavorsList.forEach((flavorItem) => {
+        const flavor = flavorItem.querySelector(".flavor-name").value;
+        const quantity = parseInt(flavorItem.querySelector(".flavor-quantity").value);
 
-            flavorInput.value = item.flavor;
-            priceInput.value = item.price;
-            quantityInput.value = item.quantity;
-
-            editModal.style.display = "flex";
-
-            // Ação para salvar as alterações
-            document.getElementById("edit-flavor-form").addEventListener("submit", (e) => {
-                e.preventDefault();
-                item.flavor = flavorInput.value;
-                item.price = parseFloat(priceInput.value);
-                item.quantity = parseInt(quantityInput.value);
-                updateStockDisplay();
-                editModal.style.display = "none";
-            });
-
-            // Fechar o modal
-            editModal.querySelector(".close").addEventListener("click", () => {
-                editModal.style.display = "none";
-            });
+        const stockItem = stock.find((item) => item.flavor === flavor);
+        if (stockItem && stockItem.quantity >= quantity) {
+            stockItem.quantity -= quantity;
+            saleTotal += quantity * stockItem.price;
+        } else {
+            validSale = false;
+            alert(`Estoque insuficiente para o sabor ${flavor}`);
         }
-    }
+    });
 
-    // Atualiza a exibição do estoque na carga inicial
-    updateStockDisplay();
+    if (validSale) {
+        showConfirmationModal(saleTotal);
+    }
+};
+
+document.getElementById("sale-form").onsubmit = handleSale;
+
+// Atualiza o caixa
+const handleCashboxUpdate = () => {
+    const entry = parseFloat(document.getElementById("cash-entry").value) || 0;
+    const exit = parseFloat(document.getElementById("cash-exit").value) || 0;
+
+    cashbox += entry - exit;
+
+    setLocalData(storageKey.cashbox, cashbox);
+    updateCashboxUI();
+};
+
+document.getElementById("update-cashbox").onclick = handleCashboxUpdate;
+
+// Inicializa o sistema
+updateStockUI();
+updateCashboxUI();
+updateSalesReportUI();
+addFlavorField();
+
+// Criação do modal de confirmação
+document.body.insertAdjacentHTML("beforeend", `
+    <div id="confirmation-modal" class="modal">
+        <div class="modal-content">
+            <h2>Confirmação de Venda</h2>
+            <p>Valor Total: <span id="confirmation-total"></span></p>
+            <button id="confirm-sale">Confirmar</button>
+            <button id="cancel-sale">Cancelar</button>
+        </div>
+    </div>
+`);
+// Seleciona os elementos necessários
+const modal = document.querySelector('.modal');
+const closeBtn = document.querySelector('.close');
+
+// Exibe o modal
+function showModal() {
+    modal.style.display = 'flex';
+}
+
+// Fecha o modal
+function closeModal() {
+    modal.style.display = 'none';
+}
+
+// Adiciona evento ao botão de fechar
+closeBtn.addEventListener('click', closeModal);
+
+// Opcional: Fecha o modal ao clicar fora do conteúdo
+window.addEventListener('click', (event) => {
+    if (event.target === modal) {
+        closeModal();
+    }
 });

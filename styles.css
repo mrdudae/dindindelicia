@@ -33,23 +33,6 @@ header h1 {
     margin: 0;
 }
 
-.navbar {
-    display: flex;
-    gap: 1.5rem;
-}
-
-.navbar a {
-    color: white;
-    text-decoration: none;
-    font-size: 1rem;
-    font-weight: bold;
-    transition: color 0.3s ease;
-}
-
-.navbar a:hover {
-    color: #ffe4e1;
-}
-
 header .cart-info {
     display: flex;
     align-items: center;
@@ -60,17 +43,6 @@ header .cart-info {
 header .cart-icon {
     width: 30px;
     height: 30px;
-}
-
-@media (max-width: 768px) {
-    header {
-        flex-direction: column;
-        text-align: center;
-    }
-
-    .cart-info {
-        justify-content: center;
-    }
 }
 
 main {
@@ -153,6 +125,7 @@ input:focus, select:focus, button:focus {
     box-shadow: 0 0 5px rgba(255, 77, 126, 0.6);
 }
 
+/* Estilos para o modal */
 .modal {
     display: none;
     position: fixed;
@@ -170,10 +143,43 @@ input:focus, select:focus, button:focus {
     padding: 2rem;
     border-radius: 8px;
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    text-align: center;
     width: 90%;
     max-width: 500px;
     animation: slideIn 0.3s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.modal-content form {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.modal-content label {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+}
+
+.modal-content input {
+    width: 90%;
+    border: 1px solid #ff69b4;
+    border-radius: 4px;
+}
+
+.modal-content button {
+    background: #ff69b4;
+    color: white;
+    border: none;
+    padding: 0.75rem;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.modal-content button:hover {
+    background: #e75480;
 }
 
 @keyframes slideIn {
@@ -182,13 +188,25 @@ input:focus, select:focus, button:focus {
 }
 
 .close {
-    float: right;
+    position: absolute;
+    top: 10px;
+    right: 10px;
     font-size: 1.5rem;
     cursor: pointer;
     color: #333;
 }
 
+/* Responsividade para dispositivos móveis */
 @media (max-width: 768px) {
+    header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .cart-info {
+        justify-content: center;
+    }
+
     main {
         padding: 1rem;
     }
@@ -201,6 +219,10 @@ input:focus, select:focus, button:focus {
     .inventory, .sale, .cashbox, .reports {
         gap: 1rem;
     }
+
+    .modal-content {
+        padding: 1.5rem;
+    }
 }
 
 @media (max-width: 480px) {
@@ -212,4 +234,23 @@ input:focus, select:focus, button:focus {
     header .logo-container .logo {
         width: 50px;
     }
+}
+
+/* Itens de venda lado a lado */
+#flavors-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+#flavors-list .flavor-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+#flavors-list .flavor-item select, 
+#flavors-list .flavor-item input {
+    flex: 1;
+    width: 90%;
 }
